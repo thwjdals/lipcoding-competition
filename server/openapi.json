@@ -1,0 +1,425 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "멘토-멘티 매칭 앱 API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/signup": {
+      "post": {
+        "summary": "회원가입",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "name": { "type": "string" },
+                  "role": { "type": "string", "enum": ["mentor", "mentee"] }
+                },
+                "required": ["email", "password", "name", "role"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "회원가입 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "email": { "type": "string" },
+                    "role": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "잘못된 요청" }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "summary": "로그인",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "로그인 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "summary": "내 정보 조회",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "내 정보 반환",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "email": { "type": "string" },
+                    "role": { "type": "string" },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "bio": { "type": "string" },
+                        "imageUrl": { "type": "string" },
+                        "skills": { "type": "array", "items": { "type": "string" } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/profile": {
+      "put": {
+        "summary": "프로필 수정",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "integer" },
+                  "name": { "type": "string" },
+                  "role": { "type": "string", "enum": ["mentor", "mentee"] },
+                  "bio": { "type": "string" },
+                  "image": { "type": "string" },
+                  "skills": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["id", "name", "role", "bio", "image"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "프로필 수정 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "description": "잘못된 요청" },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/mentors": {
+      "get": {
+        "summary": "멘토 리스트 조회",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "skill", "in": "query", "schema": { "type": "string" }, "description": "기술 스택 필터" },
+          { "name": "order_by", "in": "query", "schema": { "type": "string" }, "description": "정렬 기준 (skill 또는 name)" }
+        ],
+        "responses": {
+          "200": {
+            "description": "멘토 리스트 반환",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } },
+                "examples": {
+                  "empty": { "value": [] },
+                  "sample": {
+                    "value": [
+                      {
+                        "id": 3,
+                        "email": "user@example.com",
+                        "role": "mentor",
+                        "profile": {
+                          "name": "김앞단",
+                          "bio": "Frontend mentor",
+                          "imageUrl": "/images/mentor/3",
+                          "skills": ["React", "Vue"]
+                        }
+                      },
+                      {
+                        "id": 4,
+                        "email": "other@example.com",
+                        "role": "mentor",
+                        "profile": {
+                          "name": "이뒷단",
+                          "bio": "Backend mentor",
+                          "imageUrl": "/images/mentor/4",
+                          "skills": ["Spring Boot", "FastAPI"]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/match-requests": {
+      "post": {
+        "summary": "매칭 요청 생성",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mentorId": { "type": "integer" },
+                  "menteeId": { "type": "integer" },
+                  "message": { "type": "string" }
+                },
+                "required": ["mentorId", "menteeId", "message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "매칭 요청 생성 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MatchRequest" },
+                "example": {
+                  "id": 1,
+                  "mentorId": 3,
+                  "menteeId": 4,
+                  "message": "멘토링 받고 싶어요!",
+                  "status": "pending"
+                }
+              }
+            }
+          },
+          "400": { "description": "잘못된 요청" },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/match-requests/incoming": {
+      "get": {
+        "summary": "나에게 들어온 요청 목록",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "요청 목록 반환",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MatchRequest" } },
+                "example": [
+                  { "id": 11, "mentorId": 5, "menteeId": 1, "message": "멘토링 받고 싶어요!", "status": "pending" },
+                  { "id": 12, "mentorId": 5, "menteeId": 2, "message": "멘토링 받고 싶어요!", "status": "accepted" }
+                ]
+              }
+            }
+          },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/match-requests/outgoing": {
+      "get": {
+        "summary": "내가 보낸 요청 목록",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "요청 목록 반환",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MatchRequest" } },
+                "example": [
+                  { "id": 11, "mentorId": 1, "menteeId": 10, "status": "pending" },
+                  { "id": 12, "mentorId": 2, "menteeId": 10, "status": "accepted" }
+                ]
+              }
+            }
+          },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/match-requests/{id}/accept": {
+      "put": {
+        "summary": "요청 수락",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "schema": { "type": "integer" }, "required": true }
+        ],
+        "responses": {
+          "200": {
+            "description": "요청 수락 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MatchRequest" },
+                "example": {
+                  "id": 11,
+                  "mentorId": 2,
+                  "menteeId": 1,
+                  "message": "멘토링 받고 싶어요!",
+                  "status": "accepted"
+                }
+              }
+            }
+          },
+          "404": { "description": "요청 없음" },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/match-requests/{id}/reject": {
+      "put": {
+        "summary": "요청 거절",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "schema": { "type": "integer" }, "required": true }
+        ],
+        "responses": {
+          "200": {
+            "description": "요청 거절 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MatchRequest" },
+                "example": {
+                  "id": 11,
+                  "mentorId": 2,
+                  "menteeId": 1,
+                  "message": "멘토링 받고 싶어요!",
+                  "status": "rejected"
+                }
+              }
+            }
+          },
+          "404": { "description": "요청 없음" },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/match-requests/{id}": {
+      "delete": {
+        "summary": "요청 삭제/취소",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "schema": { "type": "integer" }, "required": true }
+        ],
+        "responses": {
+          "200": {
+            "description": "요청 삭제/취소 성공",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MatchRequest" },
+                "example": {
+                  "id": 11,
+                  "mentorId": 2,
+                  "menteeId": 12,
+                  "message": "멘토링 받고 싶어요!",
+                  "status": "cancelled"
+                }
+              }
+            }
+          },
+          "404": { "description": "요청 없음" },
+          "401": { "description": "인증 실패" }
+        }
+      }
+    },
+    "/api/images/{role}/{id}": {
+      "get": {
+        "summary": "프로필 이미지 조회",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "role", "in": "path", "schema": { "type": "string", "enum": ["mentor", "mentee"] }, "required": true },
+          { "name": "id", "in": "path", "schema": { "type": "integer" }, "required": true }
+        ],
+        "responses": {
+          "200": { "description": "프로필 이미지 반환 (image/png 등)" },
+          "401": { "description": "인증 실패" },
+          "404": { "description": "이미지 없음" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "email": { "type": "string" },
+          "role": { "type": "string" },
+          "profile": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "bio": { "type": "string" },
+              "imageUrl": { "type": "string" },
+              "skills": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "MatchRequest": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "mentorId": { "type": "integer" },
+          "menteeId": { "type": "integer" },
+          "message": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "cancelled"] }
+        }
+      }
+    }
+  }
+}
